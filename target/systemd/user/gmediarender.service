@@ -1,0 +1,11 @@
+[Unit]
+Description=GMediaRender UPnP/DLNA renderer
+After=pulseaudio.socket
+
+[Service]
+Type=simple
+# %H hostname
+ExecStart=/usr/bin/gmediarender -f %H --gstout-audiosink alsasink
+
+[Install]
+WantedBy=default.target

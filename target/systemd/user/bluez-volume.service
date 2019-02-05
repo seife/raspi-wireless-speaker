@@ -1,0 +1,11 @@
+[Unit]
+Description=bluez pulse volume setter
+After=pulseaudio.socket
+
+[Service]
+Type=simple
+ExecStart=%h/tools/bluez-volume-ng.sh
+Restart=always
+
+[Install]
+WantedBy=default.target

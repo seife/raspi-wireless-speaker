@@ -1,0 +1,10 @@
+[Unit]
+Description=bluez mini-agent
+
+[Service]
+Type=simple
+ExecStart=%h/tools/mini-agent.py
+Restart=always
+
+[Install]
+WantedBy=default.target
