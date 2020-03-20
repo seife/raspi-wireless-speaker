@@ -47,10 +47,10 @@ set_volume_source() {
 	BLUEZ=$(sed -n '/ index: [0-9]\+/{s/^.* //;h}; /name: <bluez/{x;p}' <<< "$LONG")
 	for NUM in $BLUEZ; do
 		#VOL=$(sed -n '/Source #'$NUM'$/,/^$/{/^[[:space:]]*Volume:/{s#^.*Volume:[^0-9]*\([0-9]\+\) / \+[0-9]\+%.*$#\1#;p}}' <<< "$LONG")
-		VOL=$(sed -n '/ index: '$NUM'$/,/^$/{/^[[:space:]]*volume:/{s#^.*volume:[^0-9]*\([0-9]\+\) / \+[0-9]\+%.*$#\1#;p}}' <<< "$LONG")
+		VOL=$(sed -n '/ index: '"$NUM"'$/,/^$/{/^[[:space:]]*volume:/{s#^.*volume:[^0-9]*\([0-9]\+\) / \+[0-9]\+%.*$#\1#;p}}' <<< "$LONG")
 		if [ "$VOL" != 58404 ]; then
 			echo "adjust sink #$NUM from $VOL to 58404"
-			pactl set-source-volume $NUM 58404 # -3db
+			pactl set-source-volume "$NUM" 58404 # -3db
 		else
 			echo "sink $NUM already at $VOL"
 		fi
@@ -91,7 +91,8 @@ set_volume_sink_input() {
 #Event 'change' on sink-input #17
 #Event 'change' on sink-input #17
 declare -A LAST
-while read dummy EV dummy WHAT NUM dummy; do
+# shellcheck disable=SC2034
+while read -r dummy EV dummy WHAT NUM dummy; do
 	case $WHAT in
 		source|sink-input) ;;
 		*) continue ;;
@@ -101,10 +102,10 @@ while read dummy EV dummy WHAT NUM dummy; do
 		*) continue ;;
 	esac
 	if [ "${LAST[$WHAT]}" = "$NUM" ]; then
-		printf "%-10s %-10s %-5s skipped\n" $EV $WHAT $NUM
+		printf "%-10s %-10s %-5s skipped\n" "$EV" "$WHAT" "$NUM"
 		continue
 	fi
-	printf "%-10s %-10s %-5s\n" $EV $WHAT $NUM
+	printf "%-10s %-10s %-5s\n" "$EV" "$WHAT" "$NUM"
 	CALL=${WHAT/-/_}
 	set_volume_"$CALL"
 	LAST[$WHAT]="$NUM"
