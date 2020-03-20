@@ -20,7 +20,7 @@ done
 
 #pactl list sources| sed -n '/Source #19$/,/^$/{/^[[:space:]]*Volume:/{s#^.*Volume:[^0-9]*\([0-9]\+\) / \+[0-9]\+%.*$#\1#;p}}'
 ## => show Volume after "Source #19" sed magic
-set_volume() {
+set_volume_source() {
 	local LONG NUM VOL BLUEZ
 	#LONG="$(pactl list sources)"		# contains volume
 	# Source #33
@@ -57,26 +57,55 @@ set_volume() {
 	done
 }
 
+set_volume_sink_input() {
+	LONG="$(pacmd list-sink-inputs)"		# contains volume
+	# 1 sink input(s) available.
+	#    index: 17
+	#        driver: <protocol-native.c>
+	#        flags: START_CORKED
+	#        state: RUNNING
+	#        sink: 0 <alsa_output.usb-Burr-Brown_from_TI_USB_Audio_CODEC-00.analog-stereo>
+	#        volume: front-left: 16384 /  25% / -36.12 dB,   front-right: 16384 /  25% / -36.12 dB
+	#                balance 0.00
+	#        muted: no
+	NATIVE=$(sed -n '/ index: [0-9]\+/{s/^.* //;h}; /driver: <protocol-native.c/{x;p}' <<< "$LONG")
+	for NUM in $NATIVE; do
+		VOL=$(sed -n '/ index: '"$NUM"'$/,/muted:/{/^[[:space:]]*volume:/{s#^.*volume:[^0-9]*\([0-9]\+\) / \+[0-9]\+%.*$#\1#;p}}' <<< "$LONG")
+		if [ "$VOL" != 16384 ]; then
+			echo "adjust sink-input #$NUM from $VOL to 16384"
+			pactl set-sink-input-volume "$NUM" 16384 # experimental value
+		else
+			echo "sink-input $NUM already at $VOL"
+		fi
+	done
+}
+
 ## listen to PA events
 # "pactl subscribe" output
 #Event 'remove' on source #28
 #Event 'change' on source #29
 #Event 'new' on source #29
-LAST=""
+#
+# for tcp-client
+#Event 'change' on sink-input #17
+#Event 'change' on sink-input #17
+#Event 'change' on sink-input #17
+declare -A LAST
 while read dummy EV dummy WHAT NUM dummy; do
 	case $WHAT in
-		source) ;;
+		source|sink-input) ;;
 		*) continue ;;
 	esac
 	case $EV in
 		"'new'"|"'change'") ;;
 		*) continue ;;
 	esac
-	if [ "$LAST" = "$NUM" ]; then
+	if [ "${LAST[$WHAT]}" = "$NUM" ]; then
 		printf "%-10s %-10s %-5s skipped\n" $EV $WHAT $NUM
 		continue
 	fi
 	printf "%-10s %-10s %-5s\n" $EV $WHAT $NUM
-	set_volume
-	LAST="$NUM"
-done < <(pactl subscribe)
+	CALL=${WHAT/-/_}
+	set_volume_"$CALL"
+	LAST[$WHAT]="$NUM"
+done < <(exec pactl subscribe)
