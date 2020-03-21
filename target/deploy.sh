@@ -20,10 +20,27 @@ mkdir ~/.config || true
 cp -avu systemd ~/.config/
 cp -avu tools ~/
 systemctl --user enable pulseaudio
-systemctl --user enable gmediarender
+#systemctl --user enable gmediarender
+systemctl --user enable mopidy
 systemctl --user enable mini-agent.service
 systemctl --user enable bluez-volume.service
-echo "discoverable on" | bluetoothctl
+
+mopidy config
+mv ~/.config/mopidy/mopidy.conf ~/.config/mopidy/mopidy.conf.default
+cat > ~/.config/mopidy/mopidy.conf <<EOF
+[audio]
+mixer_volume = 33
+
+[http]
+hostname = 0.0.0.0
+
+[m3u]
+playlists_dir = ~/mopidy-playlists
+EOF
+mkdir ~/mopidy-playlists || true
+
+## on machines without bluetooth this will take forever
+timeout 10 bluetoothctl discoverable on || true
 echo
 echo
 echo "no errors detected"

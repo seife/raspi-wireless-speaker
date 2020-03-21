@@ -16,15 +16,33 @@ if test -z "$SUDO_USER"; then
 	exit 1
 fi
 set -e # exit on any error
+wget -q -O - https://apt.mopidy.com/mopidy.gpg | apt-key add -
+wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/buster.list
+
+wget -q -O - https://www.lesbonscomptes.com/pages/jf-at-dockes.org.pgp | apt-key add -
+echo "deb http://www.lesbonscomptes.com/upmpdcli/downloads/raspbian/ buster main
+#deb-src http://www.lesbonscomptes.com/upmpdcli/downloads/raspbian/ buster main" > /etc/apt/sources.list.d/upmpdcli.list
+
 apt update
 apt upgrade
-apt install pulseaudio-module-bluetooth gmediarender pavucontrol paman paprefs gstreamer1.0-alsa gstreamer1.0-libav vim bluez-test-scripts bluez-test-tools bluez-tools python-dbus
+apt install pulseaudio-module-bluetooth pavucontrol paman paprefs gstreamer1.0-alsa gstreamer1.0-libav vim bluez-test-scripts bluez-test-tools bluez-tools python-dbus mopidy mopidy-mpd upmpdcli python3-pip
+
 apt remove at-spi2-core
 sed -i -e 's/^#Discoverable/Discoverable/' -e 's/^#Class.*/Class = 0x200414/' /etc/bluetooth/main.conf
 
 ###### this enables autologin on tty1 for user $SUDO_USER
-# borrowed from raspi-config
+cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin pi --noclear %I \$TERM
+EOF
 systemctl set-default multi-user.target
-sed /etc/systemd/system/autologin@.service -i -e "s#^ExecStart=-/sbin/agetty --autologin [^[:space:]]*#ExecStart=-/sbin/agetty --autologin $SUDO_USER#"
-ln -fs /etc/systemd/system/autologin@.service /etc/systemd/system/getty.target.wants/getty@tty1.service
-# end raspi-config
+systemctl daemon-reload
+
+### mopidy stuff
+python3 -m pip install Mopidy-Mobile
+python3 -m pip install Mopidy-MusicBox-Webclient
+
+### upmpdcli
+systemctl stop upmpdcli
+sed -i -e "/^friendlyname/d;\$a\\\\nfriendlyname = $(hostname)" /etc/upmpdcli.conf
