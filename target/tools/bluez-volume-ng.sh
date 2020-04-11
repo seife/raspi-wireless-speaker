@@ -58,6 +58,7 @@ set_volume_source() {
 }
 
 set_volume_sink_input() {
+	local LONG NUM VOL BLUEZ
 	LONG="$(pacmd list-sink-inputs)"		# contains volume
 	# 1 sink input(s) available.
 	#    index: 17
