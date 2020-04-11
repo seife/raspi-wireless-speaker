@@ -13,10 +13,15 @@
 # Note: "pactl list sources" takes significantly longer than
 #       "pacmd list-sources", so I changed it to use pacmd.
 
+QUIET=false
 while ! pidof pulseaudio; do
-	echo "waiting for pulseaudio"
+	if ! $QUIET; then
+		echo "waiting for pulseaudio"
+		QUIET=true
+	fi
 	sleep 1;
 done
+$QUIET && echo "pulseaudio appeared..."
 
 #pactl list sources| sed -n '/Source #19$/,/^$/{/^[[:space:]]*Volume:/{s#^.*Volume:[^0-9]*\([0-9]\+\) / \+[0-9]\+%.*$#\1#;p}}'
 ## => show Volume after "Source #19" sed magic
